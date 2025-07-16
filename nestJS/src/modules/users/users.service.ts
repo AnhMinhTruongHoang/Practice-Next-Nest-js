@@ -2,7 +2,7 @@ import { BadRequestException, Injectable, Query } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
-import { Model } from 'mongoose';
+import mongoose, { Model } from 'mongoose';
 import { User } from './schemas/user.schema';
 import { hashPasswordHelper } from 'src/helpers/util';
 import aqp from 'api-query-params';
@@ -22,6 +22,10 @@ export class UsersService {
       return false;
     }
   };
+
+  async findByEmail(email: string) {
+    return await this.userModel.findOne({ email });
+  }
 
   async create(createUserDto: CreateUserDto) {
     const { name, email, password, phone, address, image } = createUserDto;
@@ -69,15 +73,22 @@ export class UsersService {
     return { results, totalPages };
   }
 
-  findOne(id: number) {
+  findOne(id: string) {
     return `This action returns a #${id} user`;
   }
 
-  update(id: number, updateUserDto: UpdateUserDto) {
-    return `This action updates a #${id} user`;
+  async update(updateUserDto: UpdateUserDto) {
+    return await this.userModel.updateOne(
+      { _id: updateUserDto },
+      { ...updateUserDto },
+    );
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} user`;
+  async remove(_id: string) {
+    if (mongoose.isValidObjectId(_id)) {
+      return this.userModel.deleteOne({ _id });
+    } else {
+      throw new BadRequestException('Invalid ID');
+    }
   }
 }

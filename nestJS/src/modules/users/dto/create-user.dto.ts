@@ -8,7 +8,6 @@ export class CreateUserDto {
   @IsEmail({}, { message: 'Invalid email format!' })
   email: string;
 
-  @IsNotEmpty()
   @IsNotEmpty({ message: 'password is required!' })
   password: string;
 
