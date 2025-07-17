@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { comparePasswordHelper } from 'src/helpers/util';
 import { UsersService } from 'src/modules/users/users.service';
 import { IUser } from 'src/types/backend.type';
+import { CreateAuthDto } from './dto/create-auth.dto';
 
 @Injectable()
 export class AuthService {
@@ -28,4 +29,8 @@ export class AuthService {
       access_token: this.jwtService.sign(payload),
     };
   }
+
+  handleRegister = async (registerDto: CreateAuthDto) => {
+    return await this.usersService.handleRegister(registerDto);
+  };
 }
