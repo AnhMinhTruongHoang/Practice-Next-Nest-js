@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable, Query } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+  Query,
+} from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectModel } from '@nestjs/mongoose';
@@ -7,14 +12,15 @@ import { User } from './schemas/user.schema';
 import { hashPasswordHelper } from 'src/helpers/util';
 import aqp from 'api-query-params';
 import { v4 as uuidv4 } from 'uuid';
-import dayjs from 'dayjs';
 import { CreateAuthDto } from 'src/auth/dto/create-auth.dto';
+import { MailerService } from '@nestjs-modules/mailer';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(User.name)
     private userModel: Model<User>,
+    private mailerService: MailerService,
   ) {}
 
   isEmailExist = async (email: string) => {
@@ -104,16 +110,34 @@ export class UsersService {
       throw new BadRequestException('Email exist');
     }
     // hash_password
-
+    const dayjs = require('dayjs');
+    const codeId = uuidv4();
     const hashPassword = await hashPasswordHelper(password);
     const user = await this.userModel.create({
       name,
       email,
       password: hashPassword,
       isActive: false,
-      codeId: uuidv4(),
+      codeId: codeId,
       codeExpired: dayjs().add(1, 'day'),
     });
+    /// send mail
+    try {
+      await this.mailerService.sendMail({
+        to: user.email,
+        subject: 'Activate your account at your mail',
+        template: 'register.hbs',
+        context: {
+          name: user?.name ?? user.email,
+          activationCode: codeId,
+        },
+      });
+    } catch (err) {
+      console.error('Email send error:', err);
+      throw new InternalServerErrorException('Filed to send mail !');
+    }
+
+    ///
 
     return {
       _id: user._id,

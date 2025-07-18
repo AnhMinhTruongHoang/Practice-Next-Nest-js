@@ -15,6 +15,8 @@ import { UsersModule } from './modules/users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtAuthGuard } from './auth/passports/jwt.auth.guard';
+import { MailerModule } from '@nestjs-modules/mailer';
+import { HandlebarsAdapter } from '@nestjs-modules/mailer/dist/adapters/handlebars.adapter';
 
 @Module({
   imports: [
@@ -27,6 +29,36 @@ import { JwtAuthGuard } from './auth/passports/jwt.auth.guard';
     OrdersModule,
     RestaurantsModule,
     ReviewsModule,
+    AuthModule,
+    /// mailer
+    MailerModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        transport: {
+          host: 'smtp.gmail.com',
+          port: 465,
+          secure: true,
+          auth: {
+            user: configService.get<string>('EMAIL_AUTH_USER'),
+            pass: configService.get<string>('EMAIL_AUTH_PASS'),
+          },
+        },
+        defaults: {
+          from: '"Your App Name" <minhlapro01@gmail.com>',
+        },
+        template: {
+          dir: process.cwd() + '/mail/templates/',
+          adapter: new HandlebarsAdapter(),
+          options: {
+            strict: true,
+          },
+        },
+      }),
+
+      inject: [ConfigService],
+    }),
+
+    ///
     ConfigModule.forRoot({ isGlobal: true }),
     MongooseModule.forRootAsync({
       imports: [ConfigModule],
@@ -35,9 +67,10 @@ import { JwtAuthGuard } from './auth/passports/jwt.auth.guard';
       }),
       inject: [ConfigService],
     }),
-    AuthModule,
   ],
+  /////
   controllers: [AppController],
+  ///
   providers: [
     AppService,
     {
